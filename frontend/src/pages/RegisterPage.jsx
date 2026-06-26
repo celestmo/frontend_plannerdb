@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./style_register.css"; 
 
+
 function RegisterPage() {
   const [userId, setUserId] = useState("");
   const [userName, setUserName] = useState("");
