@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./register.css"; 
+import "./style_register.css"; 
 
 function RegisterPage() {
   const [userId, setUserId] = useState("");

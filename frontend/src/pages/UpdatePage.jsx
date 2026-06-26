@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
-import "./taskCreate.css";
+import "./style_taskCreate.css";
 
 function UpdatePage() {
   const { resourceId } = useParams();
