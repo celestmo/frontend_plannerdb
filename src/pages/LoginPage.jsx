@@ -16,6 +16,8 @@ function LoginPage() {
       return;
     }
     try {
+      const API_URL = import.meta.env.VITE_API_URL;
+      
       const res = await fetch('/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
