@@ -537,3 +537,9 @@ button { cursor: pointer; }
   .mcell { min-height: 56px; padding: 4px 3px; }
   .mcell-num { font-size: 11px; width: 20px; height: 20px; }
 }
+.header-avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
