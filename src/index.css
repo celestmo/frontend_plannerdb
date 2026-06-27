@@ -109,7 +109,11 @@ button { cursor: pointer; }
 .btn-icon       { padding: 7px 10px; }
 
 /* Layout */
-.page-section { width: 100%; }
+.page-section {
+  width: 100%;
+  background: url('/calendarbg.png') center/cover no-repeat;
+  background-attachment: fixed;
+}
 
 .layout {
   display: grid;
@@ -308,6 +312,69 @@ button { cursor: pointer; }
 }
 
 /* Tasks */
+.motivation-board {
+  width: 100%;
+  background: linear-gradient(135deg, #fff8f2 0%, #f3f9ff 100%);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 18px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.motivation-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.motivation-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.motivation-quote {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.motivation-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.motivation-stats span {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.motivation-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.motivation-chip {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .task-list { display: flex; flex-direction: column; gap: 8px; }
 
 .task-card {

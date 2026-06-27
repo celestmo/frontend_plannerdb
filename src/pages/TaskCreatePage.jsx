@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
+import { AVAILABLE_COURSES } from '../constants/courses';
 import "./style_taskCreate.css";
 
 function TaskCreatePage() {
+  const resolveTaskState = (task) => {
+    if (task?.done) return 'Completed';
+    if (task?.state === 'In Progress' || task?.state === 'En progreso') return 'In Progress';
+    return 'Pending';
+  };
+
   const [taskName, setTaskName] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [details, setDetails] = useState("");
@@ -20,26 +27,13 @@ function TaskCreatePage() {
   const { resourceId } = useParams();
   const isEdit = Boolean(resourceId);
 
-  const courses = [
-    { code: "IF-0001", name: "DESARROLLO DE SOFTWARE" },
-    { code: "IF-0002", name: "INTRODUCCIÓN A LA INFORMÁTICA EMPRESARIAL" },
-    { code: "IF-0003", name: "MATEMÁTICA BÁSICA PARA INFORMÁTICA EMPRESARIAL" },
-    { code: "IF-0004", name: "DESARROLLO DE SOFTWARE II" },
-    { code: "IF-0005", name: "MATEMÁTICAS DISCRETAS PARA INFORMÁTICA EMPRESARIAL" },
-    { code: "IF-0006", name: "DESARROLLO DE SOFTWARE III" },
-    { code: "IF-0007", name: "BASES DE DATOS I" },
-    { code: "IF-0008", name: "CÁLCULO I PARA INFORMÁTICA EMPRESARIAL" },
-    { code: "IF-3001", name: "ALGORITMOS Y ESTRUCTURAS DE DATOS" },
-    { code: "IF-0009", name: "DESARROLLO DE SOFTWARE IV" },
-    { code: "IF-0010", name: "BASES DE DATOS II" },
-    { code: "IF-0011", name: "REDES DE COMPUTADORAS" },
-    { code: "IF-0012", name: "ÁLGEBRA LINEAL PARA INFORMÁTICA EMPRESARIAL" },
-    { code: "IF-0015", name: "INTRODUCCIÓN A LA ADMINISTRACIÓN DE NEGOCIOS" },
-    { code: "IF-0016", name: "INTRODUCCIÓN A LA ESTADÍSTICA Y ANÁLISIS DE DATOS" },
-    { code: "IF-0017", name: "MÉTODOS NUMÉRICOS Y ANÁLISIS COMPUTACIONAL" },
-    { code: "IF-0019", name: "SEGURIDAD EN SISTEMAS INFORMÁTICOS" },
-    { code: "IF-7201", name: "GESTIÓN DE PROYECTOS" },
-  ];
+  useEffect(() => {
+    const selectedCourse = localStorage.getItem('selectedCourseForTask');
+    if (selectedCourse) {
+      setCourseCode(selectedCourse);
+      localStorage.removeItem('selectedCourseForTask');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,12 +42,14 @@ function TaskCreatePage() {
       taskName,
       createdDate: new Date().toISOString(),
       dueDate: dueDate + "T00:00:00",
-      done: false,
+      done: state === "Completed",
       details,
       state,
+      status: state,
+      taskStatus: state,
       priority,
-      course: { courseCode },   
-      userId                   
+      courseCode,
+      userId
     };
 
     try {
@@ -92,14 +88,14 @@ function TaskCreatePage() {
         const res = await fetch('/api/tasks');
         if (!res.ok) return;
         const list = await res.json();
-        const t = list.find(x => x.resourceId === resourceId || x.resourceId === resourceId);
+        const t = list.find(x => x.resourceId === resourceId);
         if (!t) return;
         setTaskName(t.taskName || '');
         setDueDate(t.dueDate ? t.dueDate.slice(0,10) : '');
         setDetails(t.details || '');
         setPriority(t.priority || 'Media');
-        setState(t.state || 'Pending');
-        setCourseCode(t.course?.courseCode || '');
+        setState(resolveTaskState(t));
+        setCourseCode(t.courseCode || t.course?.courseCode || '');
       } catch (err) {
         console.error('Error loading task for edit', err);
       }
@@ -182,7 +178,7 @@ function TaskCreatePage() {
             required
           >
             <option value="">Seleccione un curso</option>
-            {courses.map((c) => (
+            {AVAILABLE_COURSES.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.code} - {c.name}
               </option>

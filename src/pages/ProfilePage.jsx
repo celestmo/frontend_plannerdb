@@ -170,9 +170,7 @@ export default function ProfilePage() {
               <label>Email</label>
               <input className="task-input" type="email" value={data.email} onChange={e => setData({ ...data, email: e.target.value })} required />
 
-              <label>URL del avatar</label>
-              <input className="task-input" type="url" value={data.avatarUrl} onChange={e => setData({ ...data, avatarUrl: e.target.value })} placeholder="Pega una URL de avatar" />
-
+            
               <div className="profile-actions">
                 <button className="btn btn-primary" type="submit">Guardar cambios</button>
                 <button type="button" className="btn" onClick={handleLogout}>Salir</button>

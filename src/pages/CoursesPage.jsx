@@ -1,4 +1,113 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { AVAILABLE_COURSES, COURSE_COLORS } from '../constants/courses';
+
 function CoursesPage() {
+  const [courses, setCourses] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const fetchCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tasks');
+      if (res.ok) {
+        const allTasks = await res.json();
+        console.log('=== DEBUG COURSES PAGE ===');
+        console.log('Total tareas:', allTasks.length);
+        console.log('Usuario actual:', user?.userId);
+        
+        const userTasks = allTasks.filter(t => String(t.userId).trim() === String(user?.userId).trim());
+        console.log('Tareas del usuario:', userTasks.length);
+        
+        if (userTasks.length === 0) {
+          console.log('No hay tareas para este usuario');
+          setCourses([]);
+          return;
+        }
+        
+        if (userTasks.length > 0) {
+          console.log('Ejemplo tarea:', JSON.stringify(userTasks[0], null, 2));
+        }
+        
+        const courseMap = {};
+        userTasks.forEach(task => {
+          const courseCode = task.courseCode || task.course?.courseCode;
+          console.log('Tarea:', task.taskName, '| Curso:', courseCode);
+          
+          if (!courseCode) {
+            console.warn('Tarea sin courseCode:', task);
+            return;
+          }
+          
+          if (!courseMap[courseCode]) {
+            courseMap[courseCode] = {
+              courseCode,
+              courseName: task.courseName || task.course?.courseName || AVAILABLE_COURSES.find(c => c.code === courseCode)?.name || '',
+              tasks: [],
+            };
+          }
+          courseMap[courseCode].tasks.push(task);
+        });
+
+        console.log('Cursos agrupados:', Object.keys(courseMap));
+        
+        const coursesData = Object.values(courseMap).map((course) => {
+          const urgentCount = course.tasks.filter(t => t.priority === 'Alta').length;
+          const colors = COURSE_COLORS[course.courseCode] || {
+            icon: 'ti-book',
+            color: '#378ADD',
+            bgColor: '#E6F1FB',
+            borderColor: '#B5D4F4',
+          };
+          return {
+            ...course,
+            ...colors,
+            taskCount: course.tasks.length,
+            urgentCount,
+            status: urgentCount > 0 ? 'urgent' : 'ok'
+          };
+        });
+
+        console.log('Cursos finales:', coursesData.length, coursesData.map(c => c.courseCode));
+        setCourses(coursesData);
+      }
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    }
+  }, [user?.userId]);
+
+  useEffect(() => {
+    fetchCourses();
+    const onUpdate = () => fetchCourses();
+    window.addEventListener('tasksUpdated', onUpdate);
+    return () => window.removeEventListener('tasksUpdated', onUpdate);
+  }, [fetchCourses]);
+
+  const handleAddCourse = () => {
+    setShowAddModal(true);
+  };
+
+  const handleSelectCourse = (courseCode) => {
+    localStorage.setItem('selectedCourseForTask', courseCode);
+    setShowAddModal(false);
+    navigate('/crear-tarea');
+  };
+
+  const getAvailableCoursesToAdd = () => {
+    const activeCourses = courses.map(c => c.courseCode);
+    return AVAILABLE_COURSES.filter(c => !activeCourses.includes(c.code));
+  };
+
+  const handleDeleteCourse = (courseCode) => {
+    const course = courses.find(c => c.courseCode === courseCode);
+    if (confirm(`¿Estás seguro de que deseas eliminar el curso ${course.courseCode}?`)) {
+      setCourses(courses.filter(c => c.courseCode !== courseCode));
+      alert(`Curso ${course.courseCode} eliminado`);
+    }
+  };
+
   return (
     <section className="page-section">
       <div className="inner-page">
@@ -6,107 +115,119 @@ function CoursesPage() {
         <div className="page-header">
           <div>
             <h2 className="page-title">Mis Cursos</h2>
-            <p className="page-sub">5 cursos activos este semestre</p>
           </div>
-          <button className="btn btn-primary"><i className="ti ti-plus"></i> Agregar curso</button>
+          <button className="btn btn-primary" onClick={handleAddCourse}><i className="ti ti-plus"></i> Agregar curso</button>
         </div>
 
-        <div className="course-grid">
-
-          <div className="course-card">
-            <div className="course-card-top" style={{background:'#E6F1FB', borderColor:'#B5D4F4'}}>
-              <div className="course-icon" style={{background:'#378ADD'}}><i className="ti ti-database"></i></div>
-              <div className="course-actions">
-                <button className="icon-btn"><i className="ti ti-edit"></i></button>
-                <button className="icon-btn danger"><i className="ti ti-trash"></i></button>
-              </div>
-            </div>
-            <div className="course-card-body">
-              <p className="course-sigla">BD-2025</p>
-              <p className="course-name">Bases de Datos</p>
-              <div className="course-stats">
-                <span><i className="ti ti-checklist"></i> 3 tareas</span>
-                <span><i className="ti ti-alert-circle" style={{color:'#E24B4A'}}></i> 1 urgente</span>
-              </div>
-            </div>
+        {courses.length === 0 ? (
+          <div style={{textAlign: 'center', padding: '40px 20px', color: '#f8f8f8'}}>
+            <p>No tienes cursos con tareas aún. Crea una tarea para que aparezca el curso aquí.</p>
           </div>
-
-          <div className="course-card">
-            <div className="course-card-top" style={{background:'#fff0f5', borderColor:'#f4bad0'}}>
-              <div className="course-icon" style={{background:'#D4537E'}}><i className="ti ti-binary-tree"></i></div>
-              <div className="course-actions">
-                <button className="icon-btn"><i className="ti ti-edit"></i></button>
-                <button className="icon-btn danger"><i className="ti ti-trash"></i></button>
+        ) : (
+          <div className="course-grid">
+            {courses.map((course) => (
+              <div key={course.courseCode} className="course-card">
+                <div className="course-card-top" style={{background: course.bgColor, borderColor: course.borderColor}}>
+                  <div className="course-icon" style={{background: course.color}}><i className={`ti ${course.icon}`}></i></div>
+                </div>
+                <div className="course-card-body">
+                  <p className="course-sigla">{course.courseCode}</p>
+                  <p className="course-name">{course.courseName || 'Sin nombre'}</p>
+                  <div className="course-stats">
+                    <span><i className="ti ti-checklist"></i> {course.taskCount} {course.taskCount === 1 ? 'tarea' : 'tareas'}</span>
+                    {course.status === 'urgent' ? (
+                      <span><i className="ti ti-alert-circle" style={{color:'#E24B4A'}}></i> {course.urgentCount} {course.urgentCount === 1 ? 'urgente' : 'urgentes'}</span>
+                    ) : (
+                      <span><i className="ti ti-circle-check" style={{color:'#1D9E75'}}></i> Al día</span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="course-card-body">
-              <p className="course-sigla">AE-2024</p>
-              <p className="course-name">Algoritmos y Estructuras</p>
-              <div className="course-stats">
-                <span><i className="ti ti-checklist"></i> 2 tareas</span>
-                <span><i className="ti ti-circle-check" style={{color:'#1D9E75'}}></i> Al día</span>
-              </div>
-            </div>
+            ))}
           </div>
-
-          <div className="course-card">
-            <div className="course-card-top" style={{background:'#edfaf4', borderColor:'#9fe1cb'}}>
-              <div className="course-icon" style={{background:'#1D9E75'}}><i className="ti ti-network"></i></div>
-              <div className="course-actions">
-                <button className="icon-btn"><i className="ti ti-edit"></i></button>
-                <button className="icon-btn danger"><i className="ti ti-trash"></i></button>
-              </div>
-            </div>
-            <div className="course-card-body">
-              <p className="course-sigla">RC-2025</p>
-              <p className="course-name">Seminario</p>
-              <div className="course-stats">
-                <span><i className="ti ti-checklist"></i> 2 tareas</span>
-                <span><i className="ti ti-circle-check" style={{color:'#1D9E75'}}></i> Al día</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="course-card">
-            <div className="course-card-top" style={{background:'#f0eeff', borderColor:'#c4bef5'}}>
-              <div className="course-icon" style={{background:'#5B4FD4'}}><i className="ti ti-math-function"></i></div>
-              <div className="course-actions">
-                <button className="icon-btn"><i className="ti ti-edit"></i></button>
-                <button className="icon-btn danger"><i className="ti ti-trash"></i></button>
-              </div>
-            </div>
-            <div className="course-card-body">
-              <p className="course-sigla">MD-2023</p>
-              <p className="course-name">Calculo</p>
-              <div className="course-stats">
-                <span><i className="ti ti-checklist"></i> 1 tarea</span>
-                <span><i className="ti ti-alert-circle" style={{color:'#E24B4A'}}></i> 1 urgente</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="course-card">
-            <div className="course-card-top" style={{background:'#fff8ec', borderColor:'#f5d8a0'}}>
-              <div className="course-icon" style={{background:'#D97B1A'}}><i className="ti ti-code"></i></div>
-              <div className="course-actions">
-                <button className="icon-btn"><i className="ti ti-edit"></i></button>
-                <button className="icon-btn danger"><i className="ti ti-trash"></i></button>
-              </div>
-            </div>
-            <div className="course-card-body">
-              <p className="course-sigla">POO-2025</p>
-              <p className="course-name">Desarrollo 3</p>
-              <div className="course-stats">
-                <span><i className="ti ti-checklist"></i> 1 tarea</span>
-                <span><i className="ti ti-circle-check" style={{color:'#1D9E75'}}></i> Al día</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        )}
       </div>
+
+      {showAddModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '70vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+              <h2 style={{margin: 0}}>Selecciona un curso</h2>
+              <button onClick={() => setShowAddModal(false)} style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666'
+              }}>×</button>
+            </div>
+
+            {getAvailableCoursesToAdd().length === 0 ? (
+              <p style={{color: '#666', textAlign: 'center'}}>Ya tienes tareas en todos los cursos disponibles.</p>
+            ) : (
+              <div>
+                <p style={{color: '#999', marginBottom: '15px'}}>Elige un curso para crear tu primera tarea:</p>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                  {getAvailableCoursesToAdd().map((course) => {
+                    const colors = COURSE_COLORS[course.code] || {
+                      icon: 'ti-book',
+                      color: '#378ADD',
+                      bgColor: '#E6F1FB',
+                      borderColor: '#B5D4F4',
+                    };
+                    return (
+                      <button
+                        key={course.code}
+                        onClick={() => handleSelectCourse(course.code)}
+                        style={{
+                          padding: '12px 15px',
+                          border: `2px solid ${colors.borderColor}`,
+                          background: colors.bgColor,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = colors.borderColor}
+                        onMouseLeave={(e) => e.target.style.background = colors.bgColor}
+                      >
+                        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                          <i className={`ti ${colors.icon}`} style={{color: colors.color, fontSize: '20px'}}></i>
+                          <div>
+                            <strong>{course.code}</strong>
+                            <div style={{fontSize: '12px', color: '#666'}}>{course.name}</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
-  )
+  );
 }
 
-export default CoursesPage
+export default CoursesPage;

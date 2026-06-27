@@ -32,7 +32,7 @@ function TasksPage() {
 
   const handleDelete = async (task) => {
     const answer = prompt(`Deseas eliminar la tarea "${task.taskName}"? Escribe tu userId para confirmar:`);
-    if (answer === null) return; // cancelled
+    if (answer === null) return;
     if (String(task.userId) !== String(answer).trim()) {
       alert('UserId incorrecto. Eliminación cancelada.');
       return;
@@ -41,7 +41,6 @@ function TasksPage() {
     try {
       const res = await fetch(`/api/tasks/${task.resourceId}`, { method: 'DELETE' });
       if (res.ok) {
-        // remove locally
         setTasks(prev => prev.filter(t => t.taskId !== task.taskId));
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
       } else {
@@ -64,7 +63,6 @@ function TasksPage() {
         <div className="page-header">
           <div>
             <h2 className="page-title">Mis Tareas</h2>
-            <p className="page-sub">Lista de tareas sincronizada con el servidor</p>
           </div>
           <button 
             className="btn btn-primary" 
@@ -77,6 +75,7 @@ function TasksPage() {
         <div className="task-list">
           {tasks.length === 0 && <p>No hay tareas.</p>}
           {tasks.map((t) => {
+            const isCompleted = t.state === 'Completed';
             const priorityClass = t.priority === 'Alta'
               ? 'high'
               : t.priority === 'Baja'
@@ -87,25 +86,31 @@ function TasksPage() {
               ? 'project'
               : 'mid';
             return (
-              <div key={t.taskId} className={`task-card border-${priorityClass}`}>
-                  <div className="task-check" style={{cursor:'pointer'}} onClick={() => setExpanded(prev => prev === t.resourceId ? null : t.resourceId)}></div>
+              <div key={t.taskId} className={`task-card border-${priorityClass}`} style={isCompleted ? { opacity: 0.6 } : {}}>
+                <div className="task-check" style={{cursor:'pointer'}} onClick={() => setExpanded(prev => prev === t.resourceId ? null : t.resourceId)}></div>
                 <div className="task-body">
-                  <p className="task-name">{t.taskName}</p>
+                  
+                  <p className="task-name" style={isCompleted ? { textDecoration: 'line-through', color: '#999' } : {}}>
+                    {t.taskName}
+                  </p>
                   <div className="task-tags">
-                    <span className="tag tag-course">{t.course?.courseCode}</span>
+                    <span className="tag tag-course">{t.courseCode || t.course?.courseCode}</span>
                     <span className="tag tag-date"><i className="ti ti-calendar"></i> {new Date(t.dueDate).toLocaleDateString()}</span>
                     <span className={`tag ${priorityClass}`}>{t.priority}</span>
+                    <span className="tag" style={{ background: isCompleted ? '#d4edda' : '#fff3cd', color: isCompleted ? '#155724' : '#856404' }}>
+                      {t.state}
+                    </span>
                   </div>
                 </div>
-                  {expanded === t.resourceId && (
-                    <div className="task-details" style={{padding:'8px 16px', background:'#fafafa', borderTop:'1px solid #eee'}}>
-                      <p><strong>Detalles:</strong> {t.details || '—'}</p>
-                      <p><strong>Estado:</strong> {t.state || '—'}</p>
-                      <p><strong>Creado:</strong> {t.createdDate ? new Date(t.createdDate).toLocaleString() : '—'}</p>
-                      <p><strong>UserId:</strong> {t.userId || '—'}</p>
-                      <p style={{fontSize:12,color:'#666'}}><strong>ResourceId:</strong> {t.resourceId}</p>
-                    </div>
-                  )}
+                {expanded === t.resourceId && (
+                  <div className="task-details" style={{padding:'8px 16px', background:'#fafafa', borderTop:'1px solid #eee'}}>
+                    <p><strong>Detalles:</strong> {t.details || '—'}</p>
+                    <p><strong>Estado:</strong> {t.state || '—'}</p>
+                    <p><strong>Creado:</strong> {t.createdDate ? new Date(t.createdDate).toLocaleString() : '—'}</p>
+                    <p><strong>UserId:</strong> {t.userId || '—'}</p>
+                    <p style={{fontSize:12,color:'#666'}}><strong>ResourceId:</strong> {t.resourceId}</p>
+                  </div>
+                )}
                 <div className="task-end">
                   <button className="icon-btn" onClick={() => handleEdit(t)}><i className="ti ti-edit"></i></button>
                   <button className="icon-btn danger" onClick={() => handleDelete(t)}><i className="ti ti-trash"></i></button>
@@ -116,7 +121,7 @@ function TasksPage() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 export default TasksPage;

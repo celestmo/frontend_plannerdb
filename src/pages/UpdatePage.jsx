@@ -6,6 +6,13 @@ import "./style_taskCreate.css";
 function UpdatePage() {
   const { resourceId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const resolveTaskState = (task) => {
+    if (task?.done) return 'Completed';
+    if (task?.state === 'In Progress' || task?.state === 'En progreso') return 'In Progress';
+    return 'Pending';
+  };
 
   const [taskName, setTaskName] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -27,8 +34,8 @@ function UpdatePage() {
         setDueDate(t.dueDate ? t.dueDate.slice(0,10) : '');
         setDetails(t.details || '');
         setPriority(t.priority || 'Media');
-        setState(t.state || 'Pending');
-        setCourseCode(t.course?.courseCode || '');
+        setState(resolveTaskState(t));
+        setCourseCode(t.courseCode || t.course?.courseCode || '');
       } catch (err) {
         console.error('Error loading task', err);
       }
@@ -52,27 +59,37 @@ function UpdatePage() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    const { user } = useAuth();
+    if (!taskName || !dueDate || !courseCode) {
+      alert('Completa todos los campos requeridos');
+      return;
+    }
+    const userData = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
     const updated = {
       taskName,
       createdDate: new Date().toISOString(),
       dueDate: dueDate + 'T00:00:00',
-      done: false,
-      details,
+      done: state === 'Completed',
+      details: details.trim(),
       state,
+      status: state,
+      taskStatus: state,
       priority,
+      courseCode,
       course: { courseCode },
-      userId: user?.userId || (() => { const raw = localStorage.getItem('userData'); return raw ? JSON.parse(raw).userId : ''; })()
+      userId: user?.userId || userData?.userId || ''
     };
     try {
       const res = await fetch(`/api/tasks/${resourceId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated)
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(updated)
       });
       if (res.ok) {
+        alert('Tarea actualizada con éxito');
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
         navigate('/tasks');
       } else {
-        alert('Error al actualizar');
+        alert('Error al actualizar la tarea');
       }
     } catch (err) {
       console.error('Error updating task', err);
@@ -81,9 +98,10 @@ function UpdatePage() {
   };
 
   const handleDelete = async () => {
-    const userId = localStorage.getItem('userId');
-    const answer = prompt(`Para confirmar eliminación escribe tu userId:`);
+    const answer = prompt('¿Eliminar esta tarea? Escribe tu userId para confirmar:');
     if (answer === null) return;
+    const userData = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
+    const userId = userData?.userId || localStorage.getItem('userId');
     if (String(answer).trim() !== String(userId)) {
       alert('UserId no coincide. Eliminación cancelada.');
       return;
@@ -91,9 +109,12 @@ function UpdatePage() {
     try {
       const res = await fetch(`/api/tasks/${resourceId}`, { method: 'DELETE' });
       if (res.ok) {
+        alert('Tarea eliminada con éxito');
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
         navigate('/tasks');
-      } else alert('Error eliminando');
+      } else {
+        alert('Error al eliminar la tarea');
+      }
     } catch (err) {
       console.error('Error deleting', err);
       alert('No se pudo conectar con el servidor');

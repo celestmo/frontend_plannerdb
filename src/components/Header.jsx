@@ -1,10 +1,15 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext';
 
 function Header() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const initials = (user?.userName || 'ES').split(' ').map(s => s[0]).join('').slice(0,2).toUpperCase();
   const avatarUrl = user?.avatarUrl;
+
+  const handleNewTask = () => {
+    navigate('/crear-tarea');
+  };
 
   return (
     <header className="header">
@@ -24,7 +29,7 @@ function Header() {
         </NavLink>
       </nav>
       <div className="header-right">
-        <button className="btn btn-primary">
+        <button className="btn btn-primary" onClick={handleNewTask}>
           <i className="ti ti-plus"></i> Nueva tarea
         </button>
         <NavLink to="/profile" className="avatar">

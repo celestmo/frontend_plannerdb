@@ -7,6 +7,8 @@ function CalendarPage() {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [viewMode, setViewMode] = useState('month'); 
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const { user } = useAuth();
 
@@ -114,6 +116,8 @@ function CalendarPage() {
                   <span
                     key={idx}
                     className={`mini-day ${cell.other ? 'dim' : ''} ${cell.hasTask ? 'has-task' : ''} ${cell.isToday ? 'today' : ''}`}
+                    onClick={() => !cell.other && setSelectedDate(cell.date)}
+                    style={{cursor: 'pointer'}}
                   >
                     {cell.day}
                   </span>
@@ -170,12 +174,14 @@ function CalendarPage() {
               <h2 className="cal-title">{current.toLocaleString(undefined, { month: 'long' })} {current.getFullYear()}</h2>
             </div>
             <div className="view-toggle">
-              <button className="view-btn active">Mes</button>
-              <button className="view-btn">Semana</button>
+              <button className={`view-btn ${viewMode === 'month' ? 'active' : ''}`} onClick={() => { setViewMode('month'); setSelectedDate(null); }}>Mes</button>
+              <button className={`view-btn ${viewMode === 'week' ? 'active' : ''}`} onClick={() => setViewMode('week')}>Semana</button>
             </div>
           </div>
 
           <div className="month-grid">
+            {viewMode === 'month' ? (
+              <>
             <div className="month-head">
               <div>Lun</div><div>Mar</div><div>Mié</div>
               <div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
@@ -207,7 +213,6 @@ function CalendarPage() {
                   cells.push({ date: dateObj, other: true });
                 }
 
-                // map tasks by date
                 const tasksByDate = {};
                 tasks.forEach(t => {
                   if (!t.dueDate) return;
@@ -243,6 +248,67 @@ function CalendarPage() {
                 });
               })()}
             </div>
+              </>
+            ) : (
+              <>
+                <div className="month-head">
+                  <div>Lun</div><div>Mar</div><div>Mié</div>
+                  <div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+                </div>
+                <div className="month-body">
+                  {(() => {
+                    const refDate = selectedDate || new Date();
+                    const getMonday = (d) => {
+                      const date = new Date(d);
+                      const day = date.getDay();
+                      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                      return new Date(date.setDate(diff));
+                    };
+                    const monday = getMonday(refDate);
+                    const week = [];
+                    for (let i = 0; i < 7; i++) {
+                      const d = new Date(monday);
+                      d.setDate(d.getDate() + i);
+                      week.push(d);
+                    }
+
+                    const tasksByDate = {};
+                    tasks.forEach(t => {
+                      if (!t.dueDate) return;
+                      const d = new Date(t.dueDate);
+                      const key = d.toISOString().slice(0, 10);
+                      tasksByDate[key] = tasksByDate[key] || [];
+                      tasksByDate[key].push(t);
+                    });
+
+                    const todayKey = new Date().toISOString().slice(0, 10);
+                    const pillClass = t => t.priority === 'Alta'
+                      ? 'high'
+                      : t.priority === 'Baja'
+                      ? 'low'
+                      : t.priority === 'Examen'
+                      ? 'exam'
+                      : t.priority === 'Proyecto'
+                      ? 'project'
+                      : 'mid';
+
+                    return week.map((d, idx) => {
+                      const key = d.toISOString().slice(0, 10);
+                      const dayTasks = tasksByDate[key] || [];
+                      const isToday = key === todayKey;
+                      return (
+                        <div key={idx} className={`mcell ${isToday ? 'today' : ''}`} style={{minHeight: '150px'}}>
+                          <div className="mcell-num">{d.getDate()}</div>
+                          {dayTasks.map((t, i) => (
+                            <div key={t.taskId || i} className={`task-pill ${pillClass(t)}`}>{t.taskName}</div>
+                          ))}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </>
+            )}
           </div>
         </main>
 
