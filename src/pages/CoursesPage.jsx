@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AVAILABLE_COURSES, COURSE_COLORS } from '../constants/courses';
-import API_BASE from "../config";
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function CoursesPage() {
   const [courses, setCourses] = useState([]);

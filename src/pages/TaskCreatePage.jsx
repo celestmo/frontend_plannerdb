@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 import { AVAILABLE_COURSES } from '../constants/courses';
-import API_BASE from "../config";
+const API_BASE = import.meta.env.VITE_API_URL || '';
 import "./style_taskCreate.css";
 
 function TaskCreatePage() {

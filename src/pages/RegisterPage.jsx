@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import API_BASE from "../config";
+const API_BASE = import.meta.env.VITE_API_URL || '';
 import "./style_register.css";
 
 function RegisterPage() {

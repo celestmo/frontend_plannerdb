@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from '../context/AuthContext';
-import API_BASE from "../config";
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function CalendarPage() {
   const [tasks, setTasks] = useState([]);
