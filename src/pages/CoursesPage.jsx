@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AVAILABLE_COURSES, COURSE_COLORS } from '../constants/courses';
+import API_BASE from "../config";
 
 function CoursesPage() {
   const [courses, setCourses] = useState([]);
@@ -11,36 +12,15 @@ function CoursesPage() {
 
   const fetchCourses = useCallback(async () => {
     try {
-      const res = await fetch('/api/tasks');
+      const res = await fetch(`${API_BASE}/api/tasks`);
       if (res.ok) {
         const allTasks = await res.json();
-        console.log('=== DEBUG COURSES PAGE ===');
-        console.log('Total tareas:', allTasks.length);
-        console.log('Usuario actual:', user?.userId);
-        
         const userTasks = allTasks.filter(t => String(t.userId).trim() === String(user?.userId).trim());
-        console.log('Tareas del usuario:', userTasks.length);
-        
-        if (userTasks.length === 0) {
-          console.log('No hay tareas para este usuario');
-          setCourses([]);
-          return;
-        }
-        
-        if (userTasks.length > 0) {
-          console.log('Ejemplo tarea:', JSON.stringify(userTasks[0], null, 2));
-        }
-        
+        if (userTasks.length === 0) { setCourses([]); return; }
         const courseMap = {};
         userTasks.forEach(task => {
           const courseCode = task.courseCode || task.course?.courseCode;
-          console.log('Tarea:', task.taskName, '| Curso:', courseCode);
-          
-          if (!courseCode) {
-            console.warn('Tarea sin courseCode:', task);
-            return;
-          }
-          
+          if (!courseCode) return;
           if (!courseMap[courseCode]) {
             courseMap[courseCode] = {
               courseCode,
@@ -50,27 +30,11 @@ function CoursesPage() {
           }
           courseMap[courseCode].tasks.push(task);
         });
-
-        console.log('Cursos agrupados:', Object.keys(courseMap));
-        
         const coursesData = Object.values(courseMap).map((course) => {
           const urgentCount = course.tasks.filter(t => t.priority === 'Alta').length;
-          const colors = COURSE_COLORS[course.courseCode] || {
-            icon: 'ti-book',
-            color: '#378ADD',
-            bgColor: '#E6F1FB',
-            borderColor: '#B5D4F4',
-          };
-          return {
-            ...course,
-            ...colors,
-            taskCount: course.tasks.length,
-            urgentCount,
-            status: urgentCount > 0 ? 'urgent' : 'ok'
-          };
+          const colors = COURSE_COLORS[course.courseCode] || { icon: 'ti-book', color: '#378ADD', bgColor: '#E6F1FB', borderColor: '#B5D4F4' };
+          return { ...course, ...colors, taskCount: course.tasks.length, urgentCount, status: urgentCount > 0 ? 'urgent' : 'ok' };
         });
-
-        console.log('Cursos finales:', coursesData.length, coursesData.map(c => c.courseCode));
         setCourses(coursesData);
       }
     } catch (err) {
@@ -85,9 +49,7 @@ function CoursesPage() {
     return () => window.removeEventListener('tasksUpdated', onUpdate);
   }, [fetchCourses]);
 
-  const handleAddCourse = () => {
-    setShowAddModal(true);
-  };
+  const handleAddCourse = () => setShowAddModal(true);
 
   const handleSelectCourse = (courseCode) => {
     localStorage.setItem('selectedCourseForTask', courseCode);
@@ -111,16 +73,16 @@ function CoursesPage() {
   return (
     <section className="page-section">
       <div className="inner-page">
-
         <div className="page-header">
           <div>
             <h2 className="page-title">Mis Cursos</h2>
+            <p className="page-sub">{courses.length} {courses.length === 1 ? 'curso activo' : 'cursos activos'} este semestre</p>
           </div>
           <button className="btn btn-primary" onClick={handleAddCourse}><i className="ti ti-plus"></i> Agregar curso</button>
         </div>
 
         {courses.length === 0 ? (
-          <div style={{textAlign: 'center', padding: '40px 20px', color: '#f8f8f8'}}>
+          <div style={{textAlign: 'center', padding: '40px 20px', color: '#666'}}>
             <p>No tienes cursos con tareas aún. Crea una tarea para que aparezca el curso aquí.</p>
           </div>
         ) : (
@@ -129,6 +91,9 @@ function CoursesPage() {
               <div key={course.courseCode} className="course-card">
                 <div className="course-card-top" style={{background: course.bgColor, borderColor: course.borderColor}}>
                   <div className="course-icon" style={{background: course.color}}><i className={`ti ${course.icon}`}></i></div>
+                  <div className="course-actions">
+                    <button className="icon-btn danger" onClick={() => handleDeleteCourse(course.courseCode)}><i className="ti ti-trash"></i></button>
+                  </div>
                 </div>
                 <div className="course-card-body">
                   <p className="course-sigla">{course.courseCode}</p>
@@ -149,72 +114,31 @@ function CoursesPage() {
       </div>
 
       {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '8px',
-            padding: '30px',
-            maxWidth: '500px',
-            width: '90%',
-            maxHeight: '70vh',
-            overflowY: 'auto'
-          }}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-              <h2 style={{margin: 0}}>Selecciona un curso</h2>
-              <button onClick={() => setShowAddModal(false)} style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '24px',
-                cursor: 'pointer',
-                color: '#666'
-              }}>×</button>
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+          <div style={{background:'white',borderRadius:'8px',padding:'30px',maxWidth:'500px',width:'90%',maxHeight:'70vh',overflowY:'auto'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
+              <h2 style={{margin:0}}>Selecciona un curso</h2>
+              <button onClick={() => setShowAddModal(false)} style={{background:'none',border:'none',fontSize:'24px',cursor:'pointer',color:'#666'}}>×</button>
             </div>
-
             {getAvailableCoursesToAdd().length === 0 ? (
-              <p style={{color: '#666', textAlign: 'center'}}>Ya tienes tareas en todos los cursos disponibles.</p>
+              <p style={{color:'#666',textAlign:'center'}}>Ya tienes tareas en todos los cursos disponibles.</p>
             ) : (
               <div>
-                <p style={{color: '#999', marginBottom: '15px'}}>Elige un curso para crear tu primera tarea:</p>
-                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                <p style={{color:'#999',marginBottom:'15px'}}>Elige un curso para crear tu primera tarea:</p>
+                <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
                   {getAvailableCoursesToAdd().map((course) => {
-                    const colors = COURSE_COLORS[course.code] || {
-                      icon: 'ti-book',
-                      color: '#378ADD',
-                      bgColor: '#E6F1FB',
-                      borderColor: '#B5D4F4',
-                    };
+                    const colors = COURSE_COLORS[course.code] || { icon:'ti-book', color:'#378ADD', bgColor:'#E6F1FB', borderColor:'#B5D4F4' };
                     return (
-                      <button
-                        key={course.code}
-                        onClick={() => handleSelectCourse(course.code)}
-                        style={{
-                          padding: '12px 15px',
-                          border: `2px solid ${colors.borderColor}`,
-                          background: colors.bgColor,
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          transition: 'all 0.2s'
-                        }}
+                      <button key={course.code} onClick={() => handleSelectCourse(course.code)}
+                        style={{padding:'12px 15px',border:`2px solid ${colors.borderColor}`,background:colors.bgColor,borderRadius:'6px',cursor:'pointer',textAlign:'left',transition:'all 0.2s'}}
                         onMouseEnter={(e) => e.target.style.background = colors.borderColor}
                         onMouseLeave={(e) => e.target.style.background = colors.bgColor}
                       >
-                        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                          <i className={`ti ${colors.icon}`} style={{color: colors.color, fontSize: '20px'}}></i>
+                        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                          <i className={`ti ${colors.icon}`} style={{color:colors.color,fontSize:'20px'}}></i>
                           <div>
                             <strong>{course.code}</strong>
-                            <div style={{fontSize: '12px', color: '#666'}}>{course.name}</div>
+                            <div style={{fontSize:'12px',color:'#666'}}>{course.name}</div>
                           </div>
                         </div>
                       </button>

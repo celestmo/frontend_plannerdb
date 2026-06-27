@@ -1,19 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from '../context/AuthContext';
+import API_BASE from "../config";
 
 function TasksPage() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [expanded, setExpanded] = useState(null);
-
   const { user } = useAuth();
 
   useEffect(() => {
     let mounted = true;
     const fetchTasks = async () => {
       try {
-        const res = await fetch("/api/tasks");
+        const res = await fetch(`${API_BASE}/api/tasks`);
         if (res.ok) {
           const data = await res.json();
           const filtered = data.filter(t => String(t.userId) === String(user?.userId));
@@ -24,7 +24,6 @@ function TasksPage() {
       }
     };
     fetchTasks();
-
     const onUpdate = () => fetchTasks();
     window.addEventListener('tasksUpdated', onUpdate);
     return () => { mounted = false; window.removeEventListener('tasksUpdated', onUpdate); };
@@ -37,9 +36,8 @@ function TasksPage() {
       alert('UserId incorrecto. Eliminación cancelada.');
       return;
     }
-
     try {
-      const res = await fetch(`/api/tasks/${task.resourceId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/tasks/${task.resourceId}`, { method: 'DELETE' });
       if (res.ok) {
         setTasks(prev => prev.filter(t => t.taskId !== task.taskId));
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
@@ -52,54 +50,35 @@ function TasksPage() {
     }
   };
 
-  const handleEdit = (task) => {
-    navigate(`/update/${task.resourceId}`);
-  };
+  const handleEdit = (task) => navigate(`/update/${task.resourceId}`);
 
   return (
     <section className="page-section">
       <div className="inner-page">
-
         <div className="page-header">
           <div>
             <h2 className="page-title">Mis Tareas</h2>
+            <p className="page-sub">Lista de tareas sincronizada con el servidor</p>
           </div>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => navigate("/crear-tarea")}
-          >
+          <button className="btn btn-primary" onClick={() => navigate("/crear-tarea")}>
             <i className="ti ti-plus"></i> Nueva tarea
           </button>
         </div>
-
         <div className="task-list">
           {tasks.length === 0 && <p>No hay tareas.</p>}
           {tasks.map((t) => {
             const isCompleted = t.state === 'Completed';
-            const priorityClass = t.priority === 'Alta'
-              ? 'high'
-              : t.priority === 'Baja'
-              ? 'low'
-              : t.priority === 'Examen' || t.priority === 'Examen / Quiz'
-              ? 'exam'
-              : t.priority === 'Proyecto'
-              ? 'project'
-              : 'mid';
+            const priorityClass = t.priority === 'Alta' ? 'high' : t.priority === 'Baja' ? 'low' : t.priority === 'Examen' || t.priority === 'Examen / Quiz' ? 'exam' : t.priority === 'Proyecto' ? 'project' : 'mid';
             return (
               <div key={t.taskId} className={`task-card border-${priorityClass}`} style={isCompleted ? { opacity: 0.6 } : {}}>
                 <div className="task-check" style={{cursor:'pointer'}} onClick={() => setExpanded(prev => prev === t.resourceId ? null : t.resourceId)}></div>
                 <div className="task-body">
-                  
-                  <p className="task-name" style={isCompleted ? { textDecoration: 'line-through', color: '#999' } : {}}>
-                    {t.taskName}
-                  </p>
+                  <p className="task-name" style={isCompleted ? { textDecoration: 'line-through', color: '#999' } : {}}>{t.taskName}</p>
                   <div className="task-tags">
                     <span className="tag tag-course">{t.courseCode || t.course?.courseCode}</span>
                     <span className="tag tag-date"><i className="ti ti-calendar"></i> {new Date(t.dueDate).toLocaleDateString()}</span>
                     <span className={`tag ${priorityClass}`}>{t.priority}</span>
-                    <span className="tag" style={{ background: isCompleted ? '#d4edda' : '#fff3cd', color: isCompleted ? '#155724' : '#856404' }}>
-                      {t.state}
-                    </span>
+                    <span className="tag" style={{background: isCompleted ? '#d4edda' : '#fff3cd', color: isCompleted ? '#155724' : '#856404'}}>{t.state}</span>
                   </div>
                 </div>
                 {expanded === t.resourceId && (

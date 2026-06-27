@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import API_BASE from "../config";
 import "./style_login.css";
 
 function LoginPage() {
@@ -16,9 +17,7 @@ function LoginPage() {
       return;
     }
     try {
-      const API_URL = import.meta.env.VITE_API_URL;
-      
-      const res = await fetch('/api/users/login', {
+      const res = await fetch(`${API_BASE}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, password })
@@ -40,29 +39,11 @@ function LoginPage() {
     <div className="login-page">
       <div className="login-box">
         <h2 className="login-title">Iniciar sesión</h2>
-
         <form onSubmit={handleLogin}>
-          <input
-            type="text"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            className="login-input"
-            placeholder="Digite su id"
-            required
-          />
-
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="login-input"
-            placeholder="Digite su contraseña"
-            required
-          />
-
+          <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} className="login-input" placeholder="Digite su id" required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="login-input" placeholder="Digite su contraseña" required />
           <button type="submit" className="login-button">Ingresar</button>
         </form>
-
         <p className="login-register">
           ¿No tienes cuenta?{" "}
           <a href="/register"> Regístrate aquí</a>

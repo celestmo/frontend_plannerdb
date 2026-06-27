@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import './style_profile.css'
+import API_BASE from "../config";
+import './style_profile.css';
 
 const avatarOptions = [
   'https://api.dicebear.com/6.x/thumbs/svg?seed=Slack1',
@@ -25,38 +26,16 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const userId = user?.userId || storedUserData?.userId;
-    if (!userId) {
-      navigate('/login');
-      return;
-    }
-
-    if (user) {
-      setData({
-        fullName: user.userName || '',
-        email: user.email || '',
-        avatarUrl: user.avatarUrl || ''
-      });
-    }
-
+    if (!userId) { navigate('/login'); return; }
+    if (user) setData({ fullName: user.userName || '', email: user.email || '', avatarUrl: user.avatarUrl || '' });
     const load = async () => {
       try {
-        const res = await fetch(`/api/users/by-userid/${userId}`);
+        const res = await fetch(`${API_BASE}/api/users/by-userid/${userId}`);
         if (res.ok) {
           const d = await res.json();
-          setData({
-            fullName: d.userName || '',
-            email: d.email || '',
-            avatarUrl: d.avatarUrl || ''
-          });
+          setData({ fullName: d.userName || '', email: d.email || '', avatarUrl: d.avatarUrl || '' });
           if (!user) {
-            login({
-              userId: d.userId,
-              userName: d.userName,
-              email: d.email,
-              avatarUrl: d.avatarUrl,
-              resourceId_User: d.resourceIdUser,
-              password: storedUserData?.password || ''
-            });
+            login({ userId: d.userId, userName: d.userName, email: d.email, avatarUrl: d.avatarUrl, resourceId_User: d.resourceIdUser, password: storedUserData?.password || '' });
           }
         }
       } catch (err) {
@@ -68,10 +47,7 @@ export default function ProfilePage() {
     load();
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -80,38 +56,18 @@ export default function ProfilePage() {
     const resourceId = userData?.resourceId_User || user?.resourceId_User;
     const answer = prompt('Para confirmar los cambios escribe tu userId:');
     if (answer === null) return;
-    if (String(answer).trim() !== String(userId)) {
-      alert('UserId no coincide. Cambios cancelados.');
-      return;
-    }
-    if (!resourceId) {
-      alert('No se encontró el perfil para actualizar. Vuelve a iniciar sesión.');
-      return;
-    }
+    if (String(answer).trim() !== String(userId)) { alert('UserId no coincide. Cambios cancelados.'); return; }
+    if (!resourceId) { alert('No se encontró el perfil para actualizar. Vuelve a iniciar sesión.'); return; }
     try {
-      const payload = {
-        userId,
-        userName: data.fullName,
-        email: data.email,
-        password: userData?.password || '',
-        avatarUrl: data.avatarUrl
-      };
-      const res = await fetch(`/api/users/${resourceId}`, {
+      const payload = { userId, userName: data.fullName, email: data.email, password: userData?.password || '', avatarUrl: data.avatarUrl };
+      const res = await fetch(`${API_BASE}/api/users/${resourceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (res.ok) {
         const updated = await res.json();
-        const updatedUser = {
-          userId: updated.userId,
-          userName: updated.userName,
-          email: updated.email,
-          avatarUrl: updated.avatarUrl,
-          resourceId_User: userData?.resourceId_User || user?.resourceId_User,
-          password: payload.password
-        };
-        login(updatedUser);
+        login({ userId: updated.userId, userName: updated.userName, email: updated.email, avatarUrl: updated.avatarUrl, resourceId_User: userData?.resourceId_User || user?.resourceId_User, password: payload.password });
         alert('Datos actualizados');
       } else {
         alert('Error al actualizar datos');
@@ -134,7 +90,6 @@ export default function ProfilePage() {
           <h2 className="page-title">Mi perfil</h2>
           <p className="page-sub">Elige un avatar y actualiza tus datos personales.</p>
         </div>
-
         <div className="profile-card">
           <div className="profile-left">
             <div className="profile-avatar preview">
@@ -149,28 +104,19 @@ export default function ProfilePage() {
               <p className="section-label">Selecciona tu avatar</p>
               <div className="avatar-grid">
                 {avatarOptions.map((url) => (
-                  <button
-                    key={url}
-                    type="button"
-                    className={`avatar-option ${data.avatarUrl === url ? 'selected' : ''}`}
-                    onClick={() => setData(prev => ({ ...prev, avatarUrl: url }))}
-                  >
+                  <button key={url} type="button" className={`avatar-option ${data.avatarUrl === url ? 'selected' : ''}`} onClick={() => setData(prev => ({ ...prev, avatarUrl: url }))}>
                     <img src={url} alt="Avatar option" />
                   </button>
                 ))}
               </div>
             </div>
           </div>
-
           <div className="profile-right">
             <form onSubmit={handleSave} className="profile-form">
               <label>Nombre completo</label>
               <input className="task-input" value={data.fullName} onChange={e => setData({ ...data, fullName: e.target.value })} required />
-
               <label>Email</label>
               <input className="task-input" type="email" value={data.email} onChange={e => setData({ ...data, email: e.target.value })} required />
-
-            
               <div className="profile-actions">
                 <button className="btn btn-primary" type="submit">Guardar cambios</button>
                 <button type="button" className="btn" onClick={handleLogout}>Salir</button>

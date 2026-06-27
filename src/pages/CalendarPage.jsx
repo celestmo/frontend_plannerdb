@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from '../context/AuthContext';
+import API_BASE from "../config";
 
 function CalendarPage() {
   const [tasks, setTasks] = useState([]);
@@ -7,18 +8,14 @@ function CalendarPage() {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  const [viewMode, setViewMode] = useState('month'); 
+  const [viewMode, setViewMode] = useState('month');
   const [selectedDate, setSelectedDate] = useState(null);
-
   const { user } = useAuth();
 
   const fetchTasks = useCallback(async () => {
     try {
-      if (!user?.userId) {
-        setTasks([]);
-        return;
-      }
-      const res = await fetch('/api/tasks');
+      if (!user?.userId) { setTasks([]); return; }
+      const res = await fetch(`${API_BASE}/api/tasks`);
       if (res.ok) {
         const all = await res.json();
         const filtered = all.filter(t => String(t.userId) === String(user.userId));
@@ -45,14 +42,8 @@ function CalendarPage() {
   }, {});
 
   const courseSummary = Object.values(tasks.reduce((acc, t) => {
-    const code = t.course?.courseCode || 'Sin curso';
-    if (!acc[code]) {
-      acc[code] = {
-        courseCode: code,
-        courseName: t.course?.courseName || '',
-        count: 0,
-      };
-    }
+    const code = t.courseCode || t.course?.courseCode || 'Sin curso';
+    if (!acc[code]) acc[code] = { courseCode: code, courseName: t.course?.courseName || '', count: 0 };
     acc[code].count += 1;
     return acc;
   }, {})).sort((a, b) => b.count - a.count);
@@ -64,38 +55,28 @@ function CalendarPage() {
     const prevMonthDays = (firstDay.getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const cells = [];
-
     const prevMonthLast = new Date(year, month, 0).getDate();
     for (let i = 0; i < prevMonthDays; i += 1) {
       const dayNum = prevMonthLast - prevMonthDays + 1 + i;
-      const dateObj = new Date(year, month - 1, dayNum);
-      cells.push({ day: dayNum, other: true, date: dateObj });
+      cells.push({ day: dayNum, other: true, date: new Date(year, month - 1, dayNum) });
     }
-
     for (let d = 1; d <= daysInMonth; d += 1) {
       const dateObj = new Date(year, month, d);
       const key = dateObj.toISOString().slice(0, 10);
       cells.push({ day: d, other: false, date: dateObj, hasTask: Boolean(tasksByDate[key]) });
     }
-
     let nextDay = 1;
     while (cells.length < 42) {
-      const dateObj = new Date(year, month + 1, nextDay);
-      cells.push({ day: nextDay, other: true, date: dateObj });
+      cells.push({ day: nextDay, other: true, date: new Date(year, month + 1, nextDay) });
       nextDay += 1;
     }
-
     const todayKey = new Date().toISOString().slice(0, 10);
-    return cells.map((cell) => ({
-      ...cell,
-      isToday: cell.date.toISOString().slice(0, 10) === todayKey,
-    }));
+    return cells.map((cell) => ({ ...cell, isToday: cell.date.toISOString().slice(0, 10) === todayKey }));
   })();
 
   return (
     <section className="page-section">
       <div className="layout">
-
         <aside className="sidebar">
           <div className="sidebar-block">
             <p className="sidebar-label">{current.toLocaleString(undefined, { month: 'long' })} {current.getFullYear()}</p>
@@ -113,19 +94,14 @@ function CalendarPage() {
                 <span className="mini-dname">Vi</span><span className="mini-dname">Sá</span>
                 <span className="mini-dname">Do</span>
                 {miniCells.map((cell, idx) => (
-                  <span
-                    key={idx}
-                    className={`mini-day ${cell.other ? 'dim' : ''} ${cell.hasTask ? 'has-task' : ''} ${cell.isToday ? 'today' : ''}`}
-                    onClick={() => !cell.other && setSelectedDate(cell.date)}
-                    style={{cursor: 'pointer'}}
-                  >
+                  <span key={idx} className={`mini-day ${cell.other ? 'dim' : ''} ${cell.hasTask ? 'has-task' : ''} ${cell.isToday ? 'today' : ''}`}
+                    onClick={() => !cell.other && setSelectedDate(cell.date)} style={{cursor: 'pointer'}}>
                     {cell.day}
                   </span>
                 ))}
               </div>
             </div>
           </div>
-
           <div className="sidebar-block">
             <p className="sidebar-label">Tipo / Prioridad</p>
             <ul className="legend">
@@ -136,7 +112,6 @@ function CalendarPage() {
               <li><span className="ldot project"></span> Proyecto</li>
             </ul>
           </div>
-
           <div className="sidebar-block">
             <p className="sidebar-label">Mis cursos</p>
             <ul className="course-list">
@@ -149,7 +124,6 @@ function CalendarPage() {
               ))}
             </ul>
           </div>
-
           <div className="sidebar-block">
             <p className="sidebar-label">Próximas tareas</p>
             <ul className="course-list">
@@ -182,78 +156,54 @@ function CalendarPage() {
           <div className="month-grid">
             {viewMode === 'month' ? (
               <>
-            <div className="month-head">
-              <div>Lun</div><div>Mar</div><div>Mié</div>
-              <div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
-            </div>
-            <div className="month-body">
-              {(() => {
-                const year = current.getFullYear();
-                const month = current.getMonth();
-                const firstDay = new Date(year, month, 1);
-                const startOffset = (firstDay.getDay() + 6) % 7; // Monday=0
-                const daysInMonth = new Date(year, month + 1, 0).getDate();
-                const cells = [];
-                // previous month days
-                const prevMonthDays = startOffset;
-                const prevMonthLast = new Date(year, month, 0).getDate();
-                for (let i = 0; i < prevMonthDays; i++) {
-                  const dayNum = prevMonthLast - prevMonthDays + 1 + i;
-                  const dateObj = new Date(year, month - 1, dayNum);
-                  cells.push({ date: dateObj, other: true });
-                }
-                // current month days
-                for (let d = 1; d <= daysInMonth; d++) {
-                  cells.push({ date: new Date(year, month, d), other: false });
-                }
-                // next month fill
-                while (cells.length < 42) {
-                  const nextIndex = cells.length - (prevMonthDays + daysInMonth) + 1;
-                  const dateObj = new Date(year, month + 1, nextIndex);
-                  cells.push({ date: dateObj, other: true });
-                }
-
-                const tasksByDate = {};
-                tasks.forEach(t => {
-                  if (!t.dueDate) return;
-                  const d = new Date(t.dueDate);
-                  const key = d.toISOString().slice(0,10);
-                  tasksByDate[key] = tasksByDate[key] || [];
-                  tasksByDate[key].push(t);
-                });
-
-                const todayKey = new Date().toISOString().slice(0,10);
-
-                return cells.map((cell, idx) => {
-                  const key = cell.date.toISOString().slice(0,10);
-                  const dayTasks = tasksByDate[key] || [];
-                  const isToday = key === todayKey;
-                  const pillClass = t => t.priority === 'Alta'
-                    ? 'high'
-                    : t.priority === 'Baja'
-                    ? 'low'
-                    : t.priority === 'Examen'
-                    ? 'exam'
-                    : t.priority === 'Proyecto'
-                    ? 'project'
-                    : 'mid';
-                  return (
-                    <div key={idx} className={`mcell ${cell.other ? 'other' : ''} ${isToday ? 'today' : ''}`}>
-                      <div className="mcell-num">{cell.date.getDate()}</div>
-                      {dayTasks.slice(0,3).map((t,i) => (
-                        <div key={t.taskId || i} className={`task-pill ${pillClass(t)}`}>{t.taskName}</div>
-                      ))}
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+                <div className="month-head">
+                  <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+                </div>
+                <div className="month-body">
+                  {(() => {
+                    const year = current.getFullYear();
+                    const month = current.getMonth();
+                    const firstDay = new Date(year, month, 1);
+                    const startOffset = (firstDay.getDay() + 6) % 7;
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const cells = [];
+                    const prevMonthDays = startOffset;
+                    const prevMonthLast = new Date(year, month, 0).getDate();
+                    for (let i = 0; i < prevMonthDays; i++) {
+                      cells.push({ date: new Date(year, month - 1, prevMonthLast - prevMonthDays + 1 + i), other: true });
+                    }
+                    for (let d = 1; d <= daysInMonth; d++) cells.push({ date: new Date(year, month, d), other: false });
+                    while (cells.length < 42) {
+                      cells.push({ date: new Date(year, month + 1, cells.length - (prevMonthDays + daysInMonth) + 1), other: true });
+                    }
+                    const tbd = {};
+                    tasks.forEach(t => {
+                      if (!t.dueDate) return;
+                      const key = new Date(t.dueDate).toISOString().slice(0,10);
+                      tbd[key] = tbd[key] || [];
+                      tbd[key].push(t);
+                    });
+                    const todayKey = new Date().toISOString().slice(0,10);
+                    const pillClass = t => t.priority === 'Alta' ? 'high' : t.priority === 'Baja' ? 'low' : t.priority === 'Examen' ? 'exam' : t.priority === 'Proyecto' ? 'project' : 'mid';
+                    return cells.map((cell, idx) => {
+                      const key = cell.date.toISOString().slice(0,10);
+                      const dayTasks = tbd[key] || [];
+                      return (
+                        <div key={idx} className={`mcell ${cell.other ? 'other' : ''} ${key === todayKey ? 'today' : ''}`}>
+                          <div className="mcell-num">{cell.date.getDate()}</div>
+                          {dayTasks.slice(0,3).map((t,i) => (
+                            <div key={t.taskId || i} className={`task-pill ${pillClass(t)}`}>{t.taskName}</div>
+                          ))}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </>
             ) : (
               <>
                 <div className="month-head">
-                  <div>Lun</div><div>Mar</div><div>Mié</div>
-                  <div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+                  <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
                 </div>
                 <div className="month-body">
                   {(() => {
@@ -271,33 +221,20 @@ function CalendarPage() {
                       d.setDate(d.getDate() + i);
                       week.push(d);
                     }
-
-                    const tasksByDate = {};
+                    const tbd = {};
                     tasks.forEach(t => {
                       if (!t.dueDate) return;
-                      const d = new Date(t.dueDate);
-                      const key = d.toISOString().slice(0, 10);
-                      tasksByDate[key] = tasksByDate[key] || [];
-                      tasksByDate[key].push(t);
+                      const key = new Date(t.dueDate).toISOString().slice(0, 10);
+                      tbd[key] = tbd[key] || [];
+                      tbd[key].push(t);
                     });
-
                     const todayKey = new Date().toISOString().slice(0, 10);
-                    const pillClass = t => t.priority === 'Alta'
-                      ? 'high'
-                      : t.priority === 'Baja'
-                      ? 'low'
-                      : t.priority === 'Examen'
-                      ? 'exam'
-                      : t.priority === 'Proyecto'
-                      ? 'project'
-                      : 'mid';
-
+                    const pillClass = t => t.priority === 'Alta' ? 'high' : t.priority === 'Baja' ? 'low' : t.priority === 'Examen' ? 'exam' : t.priority === 'Proyecto' ? 'project' : 'mid';
                     return week.map((d, idx) => {
                       const key = d.toISOString().slice(0, 10);
-                      const dayTasks = tasksByDate[key] || [];
-                      const isToday = key === todayKey;
+                      const dayTasks = tbd[key] || [];
                       return (
-                        <div key={idx} className={`mcell ${isToday ? 'today' : ''}`} style={{minHeight: '150px'}}>
+                        <div key={idx} className={`mcell ${key === todayKey ? 'today' : ''}`} style={{minHeight: '150px'}}>
                           <div className="mcell-num">{d.getDate()}</div>
                           {dayTasks.map((t, i) => (
                             <div key={t.taskId || i} className={`task-pill ${pillClass(t)}`}>{t.taskName}</div>
@@ -311,10 +248,9 @@ function CalendarPage() {
             )}
           </div>
         </main>
-
       </div>
     </section>
-  )
+  );
 }
 
-export default CalendarPage
+export default CalendarPage;

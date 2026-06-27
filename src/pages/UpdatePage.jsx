@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
+import API_BASE from "../config";
 import "./style_taskCreate.css";
 
 function UpdatePage() {
@@ -25,10 +26,10 @@ function UpdatePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/tasks');
+        const res = await fetch(`${API_BASE}/api/tasks`);
         if (!res.ok) return;
         const list = await res.json();
-        const t = list.find(x => x.resourceId === resourceId || x.resourceId === (resourceId && resourceId));
+        const t = list.find(x => x.resourceId === resourceId);
         if (!t) return;
         setTaskName(t.taskName || '');
         setDueDate(t.dueDate ? t.dueDate.slice(0,10) : '');
@@ -46,7 +47,7 @@ function UpdatePage() {
   useEffect(() => {
     const loadCourses = async () => {
       try {
-        const res = await fetch('/api/courses');
+        const res = await fetch(`${API_BASE}/api/courses`);
         if (!res.ok) return;
         const list = await res.json();
         setCourses(list || []);
@@ -71,17 +72,14 @@ function UpdatePage() {
       done: state === 'Completed',
       details: details.trim(),
       state,
-      status: state,
-      taskStatus: state,
       priority,
       courseCode,
-      course: { courseCode },
       userId: user?.userId || userData?.userId || ''
     };
     try {
-      const res = await fetch(`/api/tasks/${resourceId}`, {
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
+      const res = await fetch(`${API_BASE}/api/tasks/${resourceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
       });
       if (res.ok) {
@@ -107,7 +105,7 @@ function UpdatePage() {
       return;
     }
     try {
-      const res = await fetch(`/api/tasks/${resourceId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/tasks/${resourceId}`, { method: 'DELETE' });
       if (res.ok) {
         alert('Tarea eliminada con éxito');
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
@@ -129,7 +127,6 @@ function UpdatePage() {
           <input type="text" value={taskName} onChange={e=>setTaskName(e.target.value)} className="task-input" placeholder="Nombre de la tarea" required />
           <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="task-input" required />
           <textarea value={details} onChange={e=>setDetails(e.target.value)} className="task-input" placeholder="Detalles" />
-
           <select value={priority} onChange={e=>setPriority(e.target.value)} className="task-input">
             <option value="Alta">Alta</option>
             <option value="Media">Media</option>
@@ -137,13 +134,11 @@ function UpdatePage() {
             <option value="Examen / Quiz">Examen / Quiz</option>
             <option value="Proyecto">Proyecto</option>
           </select>
-
           <select value={state} onChange={e=>setState(e.target.value)} className="task-input">
             <option value="Pending">Pendiente</option>
             <option value="In Progress">En progreso</option>
             <option value="Completed">Completada</option>
           </select>
-
           <select value={courseCode} onChange={e=>setCourseCode(e.target.value)} className="task-input" required>
             <option value="">Selecciona un curso</option>
             {courses.map(c => (
@@ -152,7 +147,6 @@ function UpdatePage() {
               </option>
             ))}
           </select>
-
           <div style={{display:'flex', gap:8}}>
             <button type="submit" className="task-button">ACTUALIZAR</button>
             <button type="button" onClick={handleDelete} className="task-button" style={{background:'#ff6b6b'}}>ELIMINAR</button>
