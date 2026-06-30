@@ -149,6 +149,58 @@ button { cursor: pointer; }
   }
 }
 
+.notice-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+  font-size: 14px;
+}
+
+.notice-banner.error {
+  background: #fff3f2;
+  border-color: #f2b8b5;
+  color: #9f2c28;
+}
+
+.notice-banner.success {
+  background: #f0fbf6;
+  border-color: #bfe8d3;
+  color: #226b4a;
+}
+
+.notice-banner.info {
+  background: #f5f7ff;
+  border-color: #d7defc;
+  color: #334a8f;
+}
+
+.notice-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.notice-content { flex: 1; }
+.notice-title { font-weight: 700; margin-bottom: 2px; }
+.notice-message { line-height: 1.45; }
+.notice-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px;
+}
+
 /* Buttons */
 .btn {
   font-family: 'DM Sans', sans-serif;

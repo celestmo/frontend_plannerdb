@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from '../context/AuthContext';
+import NoticeBanner from '../components/NoticeBanner';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function CalendarPage() {
@@ -10,6 +11,7 @@ function CalendarPage() {
   });
   const [viewMode, setViewMode] = useState('month');
   const [selectedDate, setSelectedDate] = useState(null);
+  const [notice, setNotice] = useState(null);
   const { user } = useAuth();
 
   const fetchTasks = useCallback(async () => {
@@ -20,9 +22,12 @@ function CalendarPage() {
         const all = await res.json();
         const filtered = all.filter(t => String(t.userId) === String(user.userId));
         setTasks(filtered);
+      } else {
+        setNotice({ type: 'error', title: 'No se pudieron cargar tus tareas', message: 'El servidor respondió con un problema. Intenta recargar la página.' });
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No fue posible cargar el calendario. Revisa tu conexión e inténtalo de nuevo.' });
     }
   }, [user]);
 
@@ -138,6 +143,7 @@ function CalendarPage() {
         </aside>
 
         <main className="cal-main">
+          {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
           <div className="cal-toolbar">
             <div className="cal-toolbar-left">
               <div className="cal-nav-group">

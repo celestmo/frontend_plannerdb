@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AVAILABLE_COURSES, COURSE_COLORS } from '../constants/courses';
+import NoticeBanner from '../components/NoticeBanner';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function CoursesPage() {
   const [courses, setCourses] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [notice, setNotice] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -36,9 +38,12 @@ function CoursesPage() {
           return { ...course, ...colors, taskCount: course.tasks.length, urgentCount, status: urgentCount > 0 ? 'urgent' : 'ok' };
         });
         setCourses(coursesData);
+      } else {
+        setNotice({ type: 'error', title: 'No se pudieron cargar los cursos', message: 'El servidor respondió con un problema. Intenta recargar la página.' });
       }
     } catch (err) {
       console.error('Error fetching courses:', err);
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No fue posible cargar tus cursos. Revisa tu conexión e inténtalo de nuevo.' });
     }
   }, [user?.userId]);
 
@@ -64,9 +69,9 @@ function CoursesPage() {
 
   const handleDeleteCourse = (courseCode) => {
     const course = courses.find(c => c.courseCode === courseCode);
-    if (confirm(`¿Estás seguro de que deseas eliminar el curso ${course.courseCode}?`)) {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar el curso ${course.courseCode}?`)) {
       setCourses(courses.filter(c => c.courseCode !== courseCode));
-      alert(`Curso ${course.courseCode} eliminado`);
+      setNotice({ type: 'success', title: 'Curso eliminado', message: `El curso ${course.courseCode} ya no aparece en tu lista.` });
     }
   };
 
@@ -81,6 +86,7 @@ function CoursesPage() {
           <button className="btn btn-primary" onClick={handleAddCourse}><i className="ti ti-plus"></i> Agregar curso</button>
         </div>
 
+        {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         {courses.length === 0 ? (
           <div style={{textAlign: 'center', padding: '40px 20px', color: '#666'}}>
             <p>No tienes cursos con tareas aún. Crea una tarea para que aparezca el curso aquí.</p>

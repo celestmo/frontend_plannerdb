@@ -1,12 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from '../context/AuthContext';
+import NoticeBanner from '../components/NoticeBanner';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function TasksPage() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [expanded, setExpanded] = useState(null);
+  const [notice, setNotice] = useState(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -18,9 +20,12 @@ function TasksPage() {
           const data = await res.json();
           const filtered = data.filter(t => String(t.userId) === String(user?.userId));
           if (mounted) setTasks(filtered);
+        } else {
+          if (mounted) setNotice({ type: 'error', title: 'No se pudieron cargar tus tareas', message: 'El servidor respondió con un problema. Intenta recargar la página.' });
         }
       } catch (err) {
         console.error("Error fetching tasks:", err);
+        if (mounted) setNotice({ type: 'error', title: 'Problema de conexión', message: 'No fue posible cargar tus tareas. Revisa tu conexión e inténtalo de nuevo.' });
       }
     };
     fetchTasks();
@@ -33,20 +38,21 @@ function TasksPage() {
     const answer = prompt(`Deseas eliminar la tarea "${task.taskName}"? Escribe tu userId para confirmar:`);
     if (answer === null) return;
     if (String(task.userId) !== String(answer).trim()) {
-      alert('UserId incorrecto. Eliminación cancelada.');
+      setNotice({ type: 'error', title: 'Confirmación inválida', message: 'Escribe correctamente tu UserId para eliminar esta tarea.' });
       return;
     }
     try {
       const res = await fetch(`${API_BASE}/api/tasks/${task.resourceId}`, { method: 'DELETE' });
       if (res.ok) {
         setTasks(prev => prev.filter(t => t.taskId !== task.taskId));
+        setNotice({ type: 'success', title: 'Tarea eliminada', message: 'La tarea se quitó correctamente de tu lista.' });
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
       } else {
-        alert('Error eliminando la tarea');
+        setNotice({ type: 'error', title: 'No se pudo eliminar', message: 'El servidor no pudo borrar la tarea. Intenta nuevamente.' });
       }
     } catch (err) {
       console.error('Error deleting task', err);
-      alert('No se pudo conectar con el servidor');
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo eliminar la tarea. Verifica tu conexión e inténtalo de nuevo.' });
     }
   };
 
@@ -64,6 +70,7 @@ function TasksPage() {
             <i className="ti ti-plus"></i> Nueva tarea
           </button>
         </div>
+        {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         <div className="task-list">
           {tasks.length === 0 && <p>No hay tareas.</p>}
           {tasks.map((t) => {

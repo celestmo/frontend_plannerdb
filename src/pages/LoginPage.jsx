@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import NoticeBanner from "../components/NoticeBanner";
 const API_BASE = import.meta.env.VITE_API_URL || '';
 import "./style_login.css";
 
@@ -8,12 +9,14 @@ function LoginPage() {
   const { login } = useAuth();
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
+  const [notice, setNotice] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setNotice(null);
     if (!userId || !password) {
-      alert("Credenciales inválidas");
+      setNotice({ type: 'error', title: 'Faltan datos', message: 'Ingresa tu ID de usuario y contraseña para continuar.' });
       return;
     }
     try {
@@ -23,7 +26,7 @@ function LoginPage() {
         body: JSON.stringify({ userId, password })
       });
       if (!res.ok) {
-        alert('Credenciales inválidas');
+        setNotice({ type: 'error', title: 'Credenciales incorrectas', message: 'Revisa tu ID y contraseña. Si todavía no tienes cuenta, regístrate primero.' });
         return;
       }
       const userData = await res.json();
@@ -31,7 +34,7 @@ function LoginPage() {
       navigate('/');
     } catch (err) {
       console.error('Login error', err);
-      alert('No se pudo conectar con el servidor');
+      setNotice({ type: 'error', title: 'No se pudo iniciar sesión', message: 'Verifica tu conexión a internet o intenta nuevamente en unos minutos.' });
     }
   };
 
@@ -39,6 +42,7 @@ function LoginPage() {
     <div className="login-page">
       <div className="login-box">
         <h2 className="login-title">Iniciar sesión</h2>
+        {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         <form onSubmit={handleLogin}>
           <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} className="login-input" placeholder="Digite su id" required />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="login-input" placeholder="Digite su contraseña" required />

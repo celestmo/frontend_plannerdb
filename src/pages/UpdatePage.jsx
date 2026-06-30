@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
+import NoticeBanner from '../components/NoticeBanner';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 import "./style_taskCreate.css";
 
@@ -22,6 +23,7 @@ function UpdatePage() {
   const [state, setState] = useState("Pending");
   const [courseCode, setCourseCode] = useState("");
   const [courses, setCourses] = useState([]);
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -61,7 +63,7 @@ function UpdatePage() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!taskName || !dueDate || !courseCode) {
-      alert('Completa todos los campos requeridos');
+      setNotice({ type: 'error', title: 'Faltan datos', message: 'Completa el nombre, la fecha y el curso para guardar los cambios.' });
       return;
     }
     const userData = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
@@ -83,15 +85,15 @@ function UpdatePage() {
         body: JSON.stringify(updated)
       });
       if (res.ok) {
-        alert('Tarea actualizada con éxito');
+        setNotice({ type: 'success', title: 'Tarea actualizada', message: 'Los cambios quedaron guardados correctamente.' });
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
         navigate('/tasks');
       } else {
-        alert('Error al actualizar la tarea');
+        setNotice({ type: 'error', title: 'No se pudo actualizar', message: 'El servidor no aceptó los cambios. Revisa la información e intenta de nuevo.' });
       }
     } catch (err) {
       console.error('Error updating task', err);
-      alert('No se pudo conectar con el servidor');
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo actualizar la tarea. Verifica tu conexión e inténtalo de nuevo.' });
     }
   };
 
@@ -101,21 +103,21 @@ function UpdatePage() {
     const userData = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
     const userId = userData?.userId || localStorage.getItem('userId');
     if (String(answer).trim() !== String(userId)) {
-      alert('UserId no coincide. Eliminación cancelada.');
+      setNotice({ type: 'error', title: 'Confirmación inválida', message: 'Escribe correctamente tu UserId para eliminar la tarea.' });
       return;
     }
     try {
       const res = await fetch(`${API_BASE}/api/tasks/${resourceId}`, { method: 'DELETE' });
       if (res.ok) {
-        alert('Tarea eliminada con éxito');
+        setNotice({ type: 'success', title: 'Tarea eliminada', message: 'La tarea se eliminó correctamente.' });
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
         navigate('/tasks');
       } else {
-        alert('Error al eliminar la tarea');
+        setNotice({ type: 'error', title: 'No se pudo eliminar', message: 'El servidor no pudo borrar la tarea. Intenta nuevamente.' });
       }
     } catch (err) {
       console.error('Error deleting', err);
-      alert('No se pudo conectar con el servidor');
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo eliminar la tarea. Verifica tu conexión e inténtalo de nuevo.' });
     }
   };
 
@@ -123,6 +125,7 @@ function UpdatePage() {
     <div className="task-page">
       <div className="task-box">
         <h2 className="task-title">Actualizar tarea</h2>
+        {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         <form onSubmit={handleUpdate}>
           <input type="text" value={taskName} onChange={e=>setTaskName(e.target.value)} className="task-input" placeholder="Nombre de la tarea" required />
           <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} className="task-input" required />

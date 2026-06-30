@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 import { AVAILABLE_COURSES } from '../constants/courses';
+import NoticeBanner from '../components/NoticeBanner';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 import "./style_taskCreate.css";
 
@@ -12,6 +13,7 @@ function TaskCreatePage() {
   const [priority, setPriority] = useState("Media");
   const [state, setState] = useState("Pending");
   const [courseCode, setCourseCode] = useState("");
+  const [notice, setNotice] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const userId = user?.userId || (() => {
@@ -31,6 +33,33 @@ function TaskCreatePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setNotice(null);
+
+    const trimmedName = taskName.trim();
+    const selectedDate = dueDate ? new Date(`${dueDate}T00:00:00`) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!trimmedName) {
+      setNotice({ type: 'error', title: 'Nombre requerido', message: 'El nombre de la tarea no puede estar vacío.' });
+      return;
+    }
+
+    if (!dueDate) {
+      setNotice({ type: 'error', title: 'Fecha requerida', message: 'Debes seleccionar una fecha para la tarea.' });
+      return;
+    }
+
+    if (selectedDate < today) {
+      setNotice({ type: 'error', title: 'Fecha inválida', message: 'La fecha tiene que ser futura o igual al día actual.' });
+      return;
+    }
+
+    if (!courseCode) {
+      setNotice({ type: 'error', title: 'Curso requerido', message: 'Selecciona un curso para guardar la tarea.' });
+      return;
+    }
+
     const newTask = {
       taskName,
       createdDate: new Date().toISOString(),
@@ -58,15 +87,15 @@ function TaskCreatePage() {
         });
       }
       if (response.ok) {
-        alert(isEdit ? "Tarea actualizada con éxito" : "Tarea creada con éxito");
+        setNotice({ type: 'success', title: isEdit ? 'Tarea actualizada' : 'Tarea creada', message: isEdit ? 'Los cambios quedaron guardados correctamente.' : 'Tu tarea quedó registrada y aparece en la lista.' });
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
         navigate("/tasks");
       } else {
-        alert("Error al guardar tarea");
+        setNotice({ type: 'error', title: 'No se pudo guardar la tarea', message: 'El nombre no puede estar vacío, la fecha tiene que ser futura y la descripción puede quedar vacía.' });
       }
     } catch (error) {
       console.error("Error creando tarea:", error);
-      alert("No se pudo conectar con el servidor");
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo guardar la tarea. Verifica tu conexión e inténtalo de nuevo.' });
     }
   };
 
@@ -94,18 +123,18 @@ function TaskCreatePage() {
 
   const handleDelete = async () => {
     if (!isEdit) return;
-    if (!confirm('¿Eliminar esta tarea?')) return;
+    if (!window.confirm('¿Eliminar esta tarea?')) return;
     try {
       const res = await fetch(`${API_BASE}/api/tasks/${resourceId}`, { method: 'DELETE' });
       if (res.ok) {
         try { window.dispatchEvent(new CustomEvent('tasksUpdated')); } catch (err) {}
         navigate('/tasks');
       } else {
-        alert('Error al eliminar');
+        setNotice({ type: 'error', title: 'No se pudo eliminar', message: 'El servidor no pudo borrar la tarea. Intenta nuevamente.' });
       }
     } catch (err) {
       console.error('Error deleting task', err);
-      alert('No se pudo conectar con el servidor');
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo eliminar la tarea. Verifica tu conexión e inténtalo de nuevo.' });
     }
   };
 
@@ -113,6 +142,7 @@ function TaskCreatePage() {
     <div className="task-page">
       <div className="task-box">
         <h2 className="task-title">Agregar nueva tarea</h2>
+        {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         <form onSubmit={handleSubmit}>
           <input type="text" value={taskName} onChange={(e) => setTaskName(e.target.value)} className="task-input" placeholder="Nombre de la tarea" required />
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="task-input" required />

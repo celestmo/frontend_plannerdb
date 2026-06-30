@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NoticeBanner from '../components/NoticeBanner';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 import './style_profile.css';
 
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const { user, login, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ fullName: '', email: '', avatarUrl: '' });
+  const [notice, setNotice] = useState(null);
 
   const storedUserData = (() => {
     const raw = localStorage.getItem('userData');
@@ -37,9 +39,12 @@ export default function ProfilePage() {
           if (!user) {
             login({ userId: d.userId, userName: d.userName, email: d.email, avatarUrl: d.avatarUrl, resourceId_User: d.resourceIdUser, password: storedUserData?.password || '' });
           }
+        } else {
+          setNotice({ type: 'error', title: 'No se pudo cargar el perfil', message: 'Intenta recargar la página. Si el problema continúa, vuelve a iniciar sesión.' });
         }
       } catch (err) {
         console.error('Error loading profile', err);
+        setNotice({ type: 'error', title: 'Problema de conexión', message: 'No fue posible cargar tu perfil. Revisa tu conexión e inténtalo de nuevo.' });
       } finally {
         setLoading(false);
       }
@@ -56,8 +61,8 @@ export default function ProfilePage() {
     const resourceId = userData?.resourceId_User || user?.resourceId_User;
     const answer = prompt('Para confirmar los cambios escribe tu userId:');
     if (answer === null) return;
-    if (String(answer).trim() !== String(userId)) { alert('UserId no coincide. Cambios cancelados.'); return; }
-    if (!resourceId) { alert('No se encontró el perfil para actualizar. Vuelve a iniciar sesión.'); return; }
+    if (String(answer).trim() !== String(userId)) { setNotice({ type: 'error', title: 'Confirmación inválida', message: 'Escribe correctamente tu UserId para guardar los cambios.' }); return; }
+    if (!resourceId) { setNotice({ type: 'error', title: 'Sesión incompleta', message: 'No se encontró tu perfil para actualizar. Inicia sesión nuevamente.' }); return; }
     try {
       const payload = { userId, userName: data.fullName, email: data.email, password: userData?.password || '', avatarUrl: data.avatarUrl };
       const res = await fetch(`${API_BASE}/api/users/${resourceId}`, {
@@ -68,13 +73,13 @@ export default function ProfilePage() {
       if (res.ok) {
         const updated = await res.json();
         login({ userId: updated.userId, userName: updated.userName, email: updated.email, avatarUrl: updated.avatarUrl, resourceId_User: userData?.resourceId_User || user?.resourceId_User, password: payload.password });
-        alert('Datos actualizados');
+        setNotice({ type: 'success', title: 'Cambios guardados', message: 'Tu información se actualizó correctamente.' });
       } else {
-        alert('Error al actualizar datos');
+        setNotice({ type: 'error', title: 'No se pudieron guardar los cambios', message: 'El servidor rechazó la actualización. Revisa tus datos e intenta de nuevo.' });
       }
     } catch (err) {
       console.error('Error updating profile', err);
-      alert('No se pudo conectar con el servidor');
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo guardar tu información. Verifica tu conexión y vuelve a intentarlo.' });
     }
   };
 
@@ -90,6 +95,7 @@ export default function ProfilePage() {
           <h2 className="page-title">Mi perfil</h2>
           <p className="page-sub">Elige un avatar y actualiza tus datos personales.</p>
         </div>
+        {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         <div className="profile-card">
           <div className="profile-left">
             <div className="profile-avatar preview">
