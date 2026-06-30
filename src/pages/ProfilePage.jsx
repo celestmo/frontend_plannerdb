@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ fullName: '', email: '', avatarUrl: '' });
   const [notice, setNotice] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const storedUserData = (() => {
     const raw = localStorage.getItem('userData');
@@ -83,6 +84,49 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDelete = async () => {
+    const userData = storedUserData || user;
+    const userId = userData?.userId;
+    const resourceId = userData?.resourceId_User || user?.resourceId_User;
+
+    if (!resourceId) {
+      setNotice({ type: 'error', title: 'Sesión incompleta', message: 'No se encontró tu perfil para eliminar. Inicia sesión nuevamente.' });
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      'Antes de eliminar tu cuenta, asegurate de no tener tareas pendientes; si tenés, elimínalas primero.\n\n¿Querés continuar con la eliminación de tu cuenta?'
+    );
+    if (!confirmDelete) return;
+
+    const answer = prompt('Para confirmar la eliminación escribe tu userId:');
+    if (answer === null) return;
+    if (String(answer).trim() !== String(userId)) {
+      setNotice({ type: 'error', title: 'Confirmación inválida', message: 'Escribe correctamente tu UserId para eliminar la cuenta.' });
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${resourceId}`, { method: 'DELETE' });
+      if (res.ok || res.status === 204) {
+        logout();
+        navigate('/login');
+      } else {
+        setNotice({
+          type: 'error',
+          title: 'No se pudo eliminar la cuenta',
+          message: 'Asegurate de no tener tareas asociadas y vuelve a intentarlo.'
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting user', err);
+      setNotice({ type: 'error', title: 'Problema de conexión', message: 'No se pudo eliminar la cuenta. Verifica tu conexión.' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="page-section"><div className="inner-page">Cargando perfil...</div></div>;
 
   const initials = (data.fullName || 'Usuario').split(' ').map(s => s[0]).join('').slice(0,2).toUpperCase();
@@ -126,6 +170,9 @@ export default function ProfilePage() {
               <div className="profile-actions">
                 <button className="btn btn-primary" type="submit">Guardar cambios</button>
                 <button type="button" className="btn" onClick={handleLogout}>Salir</button>
+                <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? 'Eliminando...' : 'Eliminar cuenta'}
+                </button>
               </div>
             </form>
           </div>
