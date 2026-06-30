@@ -20,10 +20,22 @@ function PrivateRoute({ children }) {
 function AppLayout() {
   const location = useLocation();
   const hideHeader = location.pathname === "/login" || location.pathname === "/register";
+  const { welcomeVisible, welcomeName } = useAuth();
 
   return (
     <>
       {!hideHeader && <Header />}
+      {welcomeVisible && (
+        <div className="welcome-toast" role="status" aria-live="polite">
+          <div className="welcome-toast-icon">
+            <i className="ti ti-sparkles"></i>
+          </div>
+          <div>
+            <p className="welcome-toast-title">¡Bienvenido!</p>
+            <p className="welcome-toast-name">{welcomeName || 'usuario'}</p>
+          </div>
+        </div>
+      )}
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

@@ -27,7 +27,7 @@ function LoginPage() {
         return;
       }
       const userData = await res.json();
-      login(userData);
+      login(userData, { showWelcome: true });
       navigate('/');
     } catch (err) {
       console.error('Login error', err);
