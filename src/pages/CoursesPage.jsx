@@ -101,51 +101,6 @@ function CoursesPage() {
     setShowEditModal(true);
   };
 
-  const handleCreateCourse = (e) => {
-    e.preventDefault();
-    const code = courseCodeInput.trim().toUpperCase();
-    const name = courseNameInput.trim();
-
-    if (!code || !name) {
-      setNotice({ type: 'error', title: 'Datos incompletos', message: 'Ingresa la sigla y el nombre del curso.' });
-      return;
-    }
-
-    if (!/^[A-Za-z]{2}-\d+$/.test(code)) {
-      setNotice({ type: 'error', title: 'Formato inválido', message: 'La sigla debe tener este formato: letra + letra + número, por ejemplo AB-101.' });
-      return;
-    }
-
-    const storedCourses = getStoredUserCourses(user?.userId);
-    const exists = storedCourses.some((course) => String(course.courseCode).toUpperCase() === code);
-    if (exists && (!editingCourse || String(editingCourse.courseCode).toUpperCase() !== code)) {
-      setNotice({ type: 'error', title: 'Curso duplicado', message: 'Ya tienes un curso con esa sigla. Elige otra.' });
-      return;
-    }
-
-    const updatedCourses = editingCourse
-      ? storedCourses.map((course) => String(course.courseCode).toUpperCase() === String(editingCourse.courseCode).toUpperCase()
-          ? { ...course, courseCode: code, courseName: name }
-          : course)
-      : [...storedCourses, { courseCode: code, courseName: name, userId: user?.userId || null }];
-
-    saveStoredUserCourses(user?.userId, updatedCourses);
-    setCourses((prev) => {
-      if (editingCourse) {
-        return prev.map((course) => String(course.courseCode).toUpperCase() === String(editingCourse.courseCode).toUpperCase()
-          ? { ...course, courseCode: code, courseName: name }
-          : course);
-      }
-      return [...prev, { courseCode: code, courseName: name, icon: 'ti-book', color: '#378ADD', bgColor: '#E6F1FB', borderColor: '#B5D4F4', taskCount: 0, urgentCount: 0, status: 'ok' }];
-    });
-    setCourseCodeInput('');
-    setCourseNameInput('');
-    setEditingCourse(null);
-    setShowAddModal(false);
-    setShowEditModal(false);
-    setNotice({ type: 'success', title: editingCourse ? 'Curso actualizado' : 'Curso creado', message: editingCourse ? `El curso ${code} se actualizó correctamente.` : `El curso ${code} quedó guardado solo para tu usuario.` });
-  };
-
   const handleSelectCourse = (courseCode) => {
     localStorage.setItem('selectedCourseForTask', courseCode);
     setShowAddModal(false);
@@ -174,15 +129,12 @@ function CoursesPage() {
         <div className="page-header">
           <div>
             <h2 className="page-title">Mis Cursos</h2>
-            <p className="page-sub">{courses.length} {courses.length === 1 ? 'curso activo' : 'cursos activos'} este semestre</p>
           </div>
-          <button className="btn btn-primary" onClick={handleAddCourse}><i className="ti ti-plus"></i> Agregar curso</button>
         </div>
 
         {notice && <NoticeBanner {...notice} onClose={() => setNotice(null)} />}
         {courses.length === 0 ? (
           <div style={{textAlign: 'center', padding: '40px 20px', color: '#666'}}>
-            <p>No tienes cursos con tareas aún. Crea una tarea para que aparezca el curso aquí.</p>
           </div>
         ) : (
           <div className="course-grid">

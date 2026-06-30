@@ -64,7 +64,6 @@ function TasksPage() {
         <div className="page-header">
           <div>
             <h2 className="page-title">Mis Tareas</h2>
-            <p className="page-sub">Lista de tareas sincronizada con el servidor</p>
           </div>
           <button className="btn btn-primary" onClick={() => navigate("/crear-tarea")}>
             <i className="ti ti-plus"></i> Nueva tarea
