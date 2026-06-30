@@ -14,6 +14,7 @@ function TaskCreatePage() {
   const [state, setState] = useState("Pending");
   const [courseCode, setCourseCode] = useState("");
   const [notice, setNotice] = useState(null);
+  const [availableCourses, setAvailableCourses] = useState([]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const userId = user?.userId || (() => {
@@ -30,6 +31,35 @@ function TaskCreatePage() {
       localStorage.removeItem('selectedCourseForTask');
     }
   }, []);
+
+  useEffect(() => {
+    const storedCourses = (() => {
+      if (!userId) return [];
+      try {
+        const raw = localStorage.getItem(`userCourses:${userId}`);
+        return raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        console.error('Error reading user courses for task form', err);
+        return [];
+      }
+    })();
+
+    const mergedCourses = [
+      ...storedCourses.map((course) => ({ code: String(course.courseCode).toUpperCase(), name: course.courseName || 'Curso personalizado' })),
+      ...AVAILABLE_COURSES.map((course) => ({ code: course.code, name: course.name }))
+    ];
+
+    const uniqueCourses = [];
+    const seen = new Set();
+    mergedCourses.forEach((course) => {
+      if (!seen.has(course.code)) {
+        seen.add(course.code);
+        uniqueCourses.push(course);
+      }
+    });
+
+    setAvailableCourses(uniqueCourses);
+  }, [userId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -161,7 +191,7 @@ function TaskCreatePage() {
           </select>
           <select value={courseCode} onChange={(e) => setCourseCode(e.target.value)} className="task-input" required>
             <option value="">Seleccione un curso</option>
-            {AVAILABLE_COURSES.map((c) => (
+            {availableCourses.map((c) => (
               <option key={c.code} value={c.code}>{c.code} - {c.name}</option>
             ))}
           </select>

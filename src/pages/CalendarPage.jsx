@@ -38,6 +38,31 @@ function CalendarPage() {
     return () => window.removeEventListener('tasksUpdated', handler);
   }, [fetchTasks]);
 
+  const handleNavigate = (direction) => {
+    const delta = direction === 'next' ? 7 : -7;
+
+    if (viewMode === 'week') {
+      const base = selectedDate || new Date();
+      const next = new Date(base);
+      next.setDate(base.getDate() + delta);
+      setSelectedDate(next);
+      setCurrent(new Date(next.getFullYear(), next.getMonth(), 1));
+      return;
+    }
+
+    setCurrent(prev => new Date(prev.getFullYear(), prev.getMonth() + (direction === 'next' ? 1 : -1), 1));
+  };
+
+  const handleGoToday = () => {
+    const today = new Date();
+    if (viewMode === 'week') {
+      setSelectedDate(today);
+      setCurrent(new Date(today.getFullYear(), today.getMonth(), 1));
+      return;
+    }
+    setCurrent(new Date(today.getFullYear(), today.getMonth(), 1));
+  };
+
   const tasksByDate = tasks.reduce((acc, t) => {
     if (!t.dueDate) return acc;
     const key = new Date(t.dueDate).toISOString().slice(0, 10);
@@ -147,9 +172,9 @@ function CalendarPage() {
           <div className="cal-toolbar">
             <div className="cal-toolbar-left">
               <div className="cal-nav-group">
-                <button className="btn btn-icon" onClick={() => setCurrent(prev => new Date(prev.getFullYear(), prev.getMonth()-1, 1))}><i className="ti ti-chevron-left"></i></button>
-                <button className="btn" onClick={() => setCurrent(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>Hoy</button>
-                <button className="btn btn-icon" onClick={() => setCurrent(prev => new Date(prev.getFullYear(), prev.getMonth()+1, 1))}><i className="ti ti-chevron-right"></i></button>
+                <button className="btn btn-icon" onClick={() => handleNavigate('prev')}><i className="ti ti-chevron-left"></i></button>
+                <button className="btn" onClick={handleGoToday}>Hoy</button>
+                <button className="btn btn-icon" onClick={() => handleNavigate('next')}><i className="ti ti-chevron-right"></i></button>
               </div>
               <h2 className="cal-title">{current.toLocaleString(undefined, { month: 'long' })} {current.getFullYear()}</h2>
             </div>
