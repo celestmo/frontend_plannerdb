@@ -32,6 +32,12 @@ function Header() {
         <button className="btn btn-primary" onClick={handleNewTask}>
           <i className="ti ti-plus"></i> Nueva tarea
         </button>
+        <NavLink to="/tasks" className="btn btn-quick-action mobile-only">
+          <i className="ti ti-checklist"></i> Tareas
+        </NavLink>
+        <NavLink to="/courses" className="btn btn-quick-action mobile-only">
+          <i className="ti ti-book-2"></i> Cursos
+        </NavLink>
         <NavLink to="/profile" className="avatar">
           {avatarUrl ? <img src={avatarUrl} alt="avatar" className="header-avatar-img" /> : initials}
         </NavLink>
